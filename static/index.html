@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>MNIST 숫자 인식</title>
+  <style>
+    body {
+      background-color: #f9fafb;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 40px;
+      color: #333;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      color: #111827;
+    }
+
+    canvas {
+      border: 2px solid #111827;
+      cursor: crosshair;
+      touch-action: none;
+      background-color: white;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+
+    button {
+      margin: 10px 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    button:hover {
+      background-color: #1d4ed8;
+    }
+
+    #result {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #2563eb;
+    }
+  #info {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #2563eb;
+    }
+
+  </style>
+</head>
+<body>
+  <h2>숫자 그리기 후 인식하기</h2>
+  <canvas id="canvas" width="280" height="280"></canvas><br/>
+  <button id="clear">지우기</button>
+  <button id="predict">인식</button>
+<p id="info">에포크: 9</p>
+  <p id="result">결과: -</p>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+
+    ctx.lineWidth = 20;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'black';
+
+    // 🔥 캔버스 배경을 흰색으로 초기화
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    canvas.addEventListener('mousedown', (e) => {
+      drawing = true;
+      ctx.beginPath();
+      ctx.moveTo(e.offsetX, e.offsetY);
+    });
+    canvas.addEventListener('mousemove', (e) => {
+      if (!drawing) return;
+      ctx.lineTo(e.offsetX, e.offsetY);
+      ctx.stroke();
+    });
+    canvas.addEventListener('mouseup', () => { drawing = false; });
+    canvas.addEventListener('mouseout', () => { drawing = false; });
+
+    document.getElementById('clear').onclick = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // 다시 흰색으로 초기화
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      document.getElementById('result').innerText = '결과: -';
+    };
+
+    document.getElementById('predict').onclick = () => {
+      const dataURL = canvas.toDataURL('image/png');
+      console.log(dataURL)
+      fetch('/predict', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({image: dataURL})
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('result').innerText = `결과: ${data.digit} (신뢰도: ${(data.confidence * 100).toFixed(2)}%)`;
+      })
+      .catch(err => {
+        console.error(err);
+        alert('예측에 실패했습니다.');
+      });
+    };
+  </script>
+</body>
+</html>
